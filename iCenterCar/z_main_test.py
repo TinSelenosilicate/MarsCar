@@ -449,9 +449,19 @@ def handle_request(cl):
             elif d == 'down':
                 car_run(-car_run_speed, car_run_time)
             elif d == 'left':
-                turn(car_turn_angle, car_turn_time)
+                send_order([
+                    [1, 1500 + car_run_speed, car_turn_time],
+                    [2, 1500 - car_run_speed, car_turn_time],
+                    [3, 1500 - car_run_speed, car_turn_time],
+                    [4, 1500 + car_run_speed, car_turn_time],
+                ])
             elif d == 'right':
-                turn(-car_turn_angle, car_turn_time)
+                send_order([
+                    [1, 1500 - car_run_speed, car_turn_time],
+                    [2, 1500 + car_run_speed, car_turn_time],
+                    [3, 1500 + car_run_speed, car_turn_time],
+                    [4, 1500 - car_run_speed, car_turn_time],
+                ])
             else:
                 car_stop()
             cl.send(b'HTTP/1.0 200 OK\r\n\r\nOK')
