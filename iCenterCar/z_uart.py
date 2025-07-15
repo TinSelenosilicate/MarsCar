@@ -48,8 +48,10 @@ class Mars_UART(object):
 #             self.uart_receive_str = uart2_recv_data.decode("utf-8","ignore")
 #             self.uart_receive_str=self.uart_receive_str[:4]
             # 使用ignore忽略解码错误
-            self.uart_receive_str = self.uart_receive_str + uart2_recv_data.decode("utf-8","ignore")
-            print("before2: ", self.uart_receive_str)
+            if uart2_recv_data != b't\ff':
+                # 使用ignore忽略解码错误
+                self.uart_receive_str = self.uart_receive_str + uart2_recv_data.decode("utf-8","ignore")
+                print("before2", self.uart_receive_str)
         
         if self.uart_send_flag:
             self.uart_receive_str = ''
