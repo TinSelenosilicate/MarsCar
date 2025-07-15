@@ -29,6 +29,8 @@ import re							#正则表达式模块，用于字符串匹配和处理
 import time
 import _thread
 import math
+import socket
+import network
 # 从`factory`包中导入各种自定义模块，分别用于控制LED、蜂鸣器、按键、ADC、串口、文件、舵机、运动学和PS2手柄
 from iCenterCar.z_led import Mars_LED
 from iCenterCar.z_beep import Mars_BEEP
@@ -414,6 +416,79 @@ def turn(angle, turn_time):
     current_pwms[13] = pwm3
     current_pwms[14] = pwm4
 
+def parse_query(path):
+    params = {}
+    if '?' in path:
+        _, qs = path.split('?', 1)
+        for kv in qs.split('&'):
+            if '=' in kv:
+                k, v = kv.split('=', 1)
+                params[k] = v
+    return params
+
+def handle_request(cl):
+    try:
+        req = cl.recv(512)
+        first_line = req.split(b'\r\n', 1)[0].decode()
+        _, full_path, _ = first_line.split()
+        path = full_path.split('?', 1)[0]
+        args = parse_query(full_path)
+        
+        if path == '/':
+            try:
+                with open('iCenterCar/web_client.html', 'rb') as f:
+                    body = f.read()
+                cl.send(b'HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n' + body)
+            except OSError:
+                cl.send(b'HTTP/1.0 404 Not Found\r\n\r\nPage not found')
+        
+        elif path == '/chassis':
+            d = args.get('direction', 'stop')
+            if d == 'up':
+                car_run(car_run_speed, car_run_time)
+            elif d == 'down':
+                car_run(-car_run_speed, car_run_time)
+            elif d == 'left':
+                turn(car_turn_angle, car_turn_time)
+            elif d == 'right':
+                turn(-car_turn_angle, car_turn_time)
+            else:
+                car_stop()
+            cl.send(b'HTTP/1.0 200 OK\r\n\r\nOK')
+            
+        elif path == '/arm':
+            a1 = int(args.get('arm1', arm_servo_1_init))
+            a2 = int(args.get('arm2', arm_servo_2_init))
+            deg1 = a1 - 90
+            deg2 = a2 - 90
+
+            print(f'Arm1 slider={a1}, rotate by {deg1}°')
+            print(f'Arm2 slider={a2}, rotate by {deg2}°')
+
+            if deg1 != 0:
+                clockwise_rotate(21, deg1, arm_move_time)
+            if deg2 != 0:
+                clockwise_rotate(22, deg2, arm_move_time)
+
+            cl.send(b'HTTP/1.0 200 OK\r\n\r\nOK')
+        
+        else:
+            cl.send(b'HTTP/1.0 404 Not Found\r\n\r\nNot Found')
+    except Exception as e:
+        print('Request error:', e)
+    finally:
+        cl.close()
+
+def start_socket_server():
+    s = socket.socket()
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind(('0.0.0.0', 80))
+    s.listen(5)
+    print('Socket HTTP server running on port 80')
+    while True:
+        cl, addr = s.accept()
+        handle_request(cl)
+        
 #3.4 处理PS2手柄输入
 def loop_ps2(): 
     global arm_move_tag,car_move_tag
@@ -445,6 +520,21 @@ def loop_ps2():
         clockwise_rotate(22, -15, 1000)
     if ps2.ButtonPressed('CROSS'):
         clockwise_rotate(22, 15, 1000)
+        
+    if ps2.en_Pressures:
+#         for button, label in zip([5, 6, 7, 8], ['Right X', 'Right Y', 'Left X', 'Left Y']):
+#             if ps2.Button('L3') or ps2.Button('R3'):
+#                 value = ps2.Analog(button)
+#                 
+#                 print(f"{label} Joystick: {value}")
+        if ps2.Button('L3'):
+            lx_dpwm = (ps2.Analog(7) - 128) * 1000 // 255
+            ly_dpwm = (ps2.Analog(8) - 128) * 1000 // 255
+            send_order( \
+                [[1, 1500-ly_dpwm, 1000], [2, 1500+ly_dpwm, 1000], \
+                 [3, 1500-ly_dpwm, 1000], [4, 1500+ly_dpwm, 1000], \
+                 [11, 1500-lx_dpwm, turn_time], [12, 1500-lx_dpwm, turn_time], \
+                 [13, 1500+lx_dpwm, turn_time], [14, 1500+lx_dpwm, turn_time]])
         
     if not horizontal:
         if ps2.ButtonPressed('PAD_UP'):
@@ -497,9 +587,13 @@ def z_main_test():
     beep = Mars_BEEP()                                   # 实例化一个蜂鸣器对象
     key = Mars_KEY()                                     # 实例化按键对象
     uart = Mars_UART()                                   # 实例化串口对象
+    ap = network.WLAN(network.AP_IF)
+    ap.active(True)
+    ap.config(essid='Tsinghua-Danger', password='12345678')
 
    #################################此处是手柄实例化及初始化 开始#################################### 
     ps2 = Mars_PS2()                                     # 实例化手柄对象
+    ps2.enablePressures()
     # 让手柄震动以表明启动完成
     error = ps2.config_gamepad(pressures=True, rumble=True)
     if error:
@@ -514,6 +608,8 @@ def z_main_test():
         ps2.read_gamepad(True, 255)  # 启动震动
         time.sleep(1)
         ps2.read_gamepad(False, 0)  # 停止震动
+        
+    print('AP ifconfig:', ap.ifconfig())
    #################################此处是手柄实例化及初始化 结束#################################### 
     #初始化车子和机械臂
 
@@ -529,6 +625,8 @@ def z_main_test():
     print('main init ok')
     
     uart.uart_send_str('0,10,10\r\n')
+    
+    _thread.start_new_thread(start_socket_server, ())
     #################################此处是主程序进入无线循环#################################### 
     while 1:                                           # 无限循环
         loop_nled()
@@ -540,4 +638,5 @@ def z_main_test():
 # 程序入口
 if __name__ == '__main__':
     z_main_test()
+
 
