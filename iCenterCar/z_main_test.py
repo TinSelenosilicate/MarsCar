@@ -388,6 +388,10 @@ def clockwise_fix(servoid, degree, ms):
     pwm = inits[servoid] - degree / rg * 1000
     send_order([[servoid, pwm, ms]])
     current_pwms[servoid] = pwm
+    
+def clockwise_fix_by_pwm(servoid, pwm, ms):
+    send_order([[servoid, pwm, ms]])
+    current_pwms[servoid] = pwm
 
 def clockwise_rotate(servoid, degree, ms):
     global current_pwms
@@ -396,6 +400,11 @@ def clockwise_rotate(servoid, degree, ms):
     else:
         rg = 180
     pwm = current_pwms[servoid] - degree / rg * 1000
+    send_order([[servoid, pwm, ms]])
+    current_pwms[servoid] = pwm
+    
+def clockwise_rotate_by_pwm(servoid, pwm, ms):
+    global current_pwms
     send_order([[servoid, pwm, ms]])
     current_pwms[servoid] = pwm
     
@@ -469,16 +478,21 @@ def handle_request(cl):
         elif path == '/arm':
             a1 = int(args.get('arm1', arm_servo_1_init))
             a2 = int(args.get('arm2', arm_servo_2_init))
+            a3 = int(args.get('arm3', arm_servo_3_init))
             deg1 = a1 - 90
             deg2 = a2 - 90
+            deg3 = a3 - 90
 
             print(f'Arm1 slider={a1}, rotate by {deg1}°')
             print(f'Arm2 slider={a2}, rotate by {deg2}°')
+            print(f'Arm3 slider={a3}, rotate by {deg3}°')
 
             if deg1 != 0:
                 clockwise_rotate(21, deg1, arm_move_time)
             if deg2 != 0:
                 clockwise_rotate(22, deg2, arm_move_time)
+            if deg3 != 0:
+                clockwise_rotate(23, deg3, arm_move_time)
 
             cl.send(b'HTTP/1.0 200 OK\r\n\r\nOK')
         
@@ -538,13 +552,50 @@ def loop_ps2():
 #                 
 #                 print(f"{label} Joystick: {value}")
         if ps2.Button('L3'):
-            lx_dpwm = (ps2.Analog(7) - 128) * 1000 // 255
-            ly_dpwm = (ps2.Analog(8) - 128) * 1000 // 255
-            send_order( \
-                [[1, 1500-ly_dpwm, 1000], [2, 1500+ly_dpwm, 1000], \
-                 [3, 1500-ly_dpwm, 1000], [4, 1500+ly_dpwm, 1000], \
-                 [11, 1500-lx_dpwm, turn_time], [12, 1500-lx_dpwm, turn_time], \
-                 [13, 1500+lx_dpwm, turn_time], [14, 1500+lx_dpwm, turn_time]])
+             lx_dpwm = (ps2.Analog(7) - 128) * 1000 // 128
+             ly_dpwm = (ps2.Analog(8) - 128) * 1000 // 128
+             
+             clockwise_fix_by_pwm(1, 1500+ly_dpwm, 200)
+             clockwise_fix_by_pwm(2, 1500-ly_dpwm, 200)
+             clockwise_fix_by_pwm(3, 1500+ly_dpwm, 200)
+             clockwise_fix_by_pwm(4, 1500-ly_dpwm, 200)
+            
+             clockwise_fix_by_pwm(11, 1500+lx_dpwm, 200)
+             clockwise_fix_by_pwm(12, 1500-lx_dpwm, 200)
+             clockwise_fix_by_pwm(13, 1500+lx_dpwm, 200)
+             clockwise_fix_by_pwm(14, 1500-lx_dpwm, 200)
+             
+#         if ps2.Button('R3'):
+#             rx_dpwm = (ps2.Analog(5) - 128) * 1000 // 128
+#             ry_dpwm = (ps2.Analog(6) - 128) * 1000 // 128
+#             clockwise_fix_by_pwm(21, 1500-rx_dpwm, 200)
+#             clockwise_fix_by_pwm(22, 1500+ry_dpwm, 200)
+            
+#         if ps2.Button('L3'):
+#             lx_dpwm = ps2.Analog(7) - 128
+#             ly_dpwm = ps2.Analog(8) - 128
+#             
+#             clockwise_fix_by_pwm(1, 1500+ly_dpwm, 200)
+#             clockwise_fix_by_pwm(2, 1500-ly_dpwm, 200)
+#             clockwise_fix_by_pwm(3, 1500+ly_dpwm, 200)
+#             clockwise_fix_by_pwm(4, 1500-ly_dpwm, 200)
+#             
+#             clockwise_fix_by_pwm(11, 1500+lx_dpwm, lx_dpwm)
+#             clockwise_fix_by_pwm(12, 1500-lx_dpwm, lx_dpwm)
+#             clockwise_fix_by_pwm(13, 1500+lx_dpwm, lx_dpwm)
+#             clockwise_fix_by_pwm(14, 1500-lx_dpwm, lx_dpwm)
+            
+        if ps2.Button('R3'):
+            rx_dpwm = (ps2.Analog(5) - 128)
+            ry_dpwm = (ps2.Analog(6) - 128)
+            if rx_dpwm > 16:
+                clockwise_rotate(21, 5, 100)
+            if rx_dpwm < -16:
+                clockwise_rotate(21, -5, 100)
+            if ry_dpwm > 16:
+                clockwise_rotate(22, -5, 100)
+            if ry_dpwm < -16:
+                clockwise_rotate(22, 5, 100)
         
     if not horizontal:
         if ps2.ButtonPressed('PAD_UP'):
@@ -648,5 +699,3 @@ def z_main_test():
 # 程序入口
 if __name__ == '__main__':
     z_main_test()
-
-
