@@ -3,130 +3,173 @@
 <head>
   <meta charset="UTF-8">
   <title>火星车控制面板</title>
-  <!-- Bootstrap 5 CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- jQuery -->
-  <script src="https://cdn.staticfile.org/jquery/3.6.0/jquery.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
+    /* 全局 Reset & 布局 */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
+      font-family: sans-serif;
       background: #eef2f5;
+      padding: 1rem;
+      display: block;        /* 改成 block 流，卡片自然上下排列 */
     }
-    .control-card {
-      max-width: 480px;
-      margin: 30px auto;
+    .card {
+      background: #fff;
+      border-radius: 0.75rem;
+      box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.1);
+      padding: 1rem;
+      width: 100%;
+      max-width: 360px;
+      margin: 0 auto 1rem;   /* 居中并在下方留白 */
     }
-    .btn-direction {
-      width: 64px;
-      height: 64px;
+    h2 {
+      font-size: 1.25rem;
+      margin-bottom: 0.75rem;
+      text-align: center;
+      border-bottom: 2px solid #ddd;
+      padding-bottom: 0.5rem;
+    }
+
+    /* 底盘按钮 */
+    .controls {
+      display: grid;
+      /* 三列三行，大小都用 1fr 平分 */
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows:    1fr 1fr 1fr;
+      gap: 1rem;                   /* 单元格之间的统一间距 */
+      width: 100%;
+      max-width: 300px;            /* 或者你希望的最大宽度 */
+      margin: 0 auto 1rem;         /* 上下居中，并在底部留白 */
+    }
+    .controls button {
+      /* 让按钮撑满单元格，并保持圆角 */
+      width: 70%;
+      height: 100%;
+      aspect-ratio: 1 / 1;         /* 保证始终是正方形 */
       font-size: 1.5rem;
-      line-height: 1;
+      border: none;
+      border-radius: 0.5rem;
+      background: #007bff;
+      color: #fff;
+      cursor: pointer;
+    }
+    /* 停止按钮单独上色 */
+    .controls .stop {
+      background: #dc3545;
+    }
+
+    /* 显式定位五个按钮到网格的中央单元格和四周单元格 */
+    .controls .up    { grid-column: 2; grid-row: 1; }
+    .controls .left  { grid-column: 1; grid-row: 2; }
+    .controls .stop  { grid-column: 2; grid-row: 2; }
+    .controls .right { grid-column: 3; grid-row: 2; }
+    .controls .down  { grid-column: 2; grid-row: 3; }
+
+    /* 滑块 & 复位 */
+    .slider-group {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+    .slider-group label {
+      flex: 1;
+    }
+    .slider-group input[type=range] {
+      flex: 2;
+      margin-left: 0.5rem;
     }
     .slider-value {
-      width: 40px;
+      display: inline-block;
+      width: 2rem;
       text-align: center;
+      margin-left: 0.5rem;
+    }
+    #arm-reset {
+      display: block;
+      width: 100%;
+      padding: 0.5rem;
+      border: none;
+      background: #6c757d;
+      color: #fff;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-size: 1rem;
     }
   </style>
 </head>
 <body>
 
-  <div class="control-card card shadow-sm">
-    <div class="card-body">
-      <h3 class="card-title text-center mb-4">底盘控制</h3>
-
-      <div class="d-flex justify-content-center">
-        <div class="text-center">
-          <button class="btn btn-primary btn-direction mb-2 up">↑</button>
-        </div>
-      </div>
-      <div class="d-flex justify-content-center gap-3 mb-3">
-        <button class="btn btn-primary btn-direction left">←</button>
-        <button class="btn btn-danger btn-direction stop">■</button>
-        <button class="btn btn-primary btn-direction right">→</button>
-      </div>
-      <div class="d-flex justify-content-center">
-        <button class="btn btn-primary btn-direction down">↓</button>
-      </div>
+  <!-- 底盘控制卡片（第一个） -->
+  <div class="card">
+    <h2>底盘控制</h2>
+    <div class="controls">
+      <button class="up">↑</button>
+      <button class="down">↓</button>
+      <button class="left">←</button>
+      <button class="right">→</button>
+      <button class="stop">■</button>
     </div>
   </div>
 
-  <div class="control-card card shadow-sm">
-    <div class="card-body">
-      <h3 class="card-title text-center mb-4">机械臂控制</h3>
-
-      <!-- 现有的四个滑块 -->
-      <div class="mb-3">
-        <label for="arm1" class="form-label">关节1：<span id="a1-val" class="fw-bold slider-value">90</span></label>
-        <input type="range" class="form-range" id="arm1" min="0" max="180" value="90">
-      </div>
-      <div class="mb-3">
-        <label for="arm2" class="form-label">关节2：<span id="a2-val" class="fw-bold slider-value">90</span></label>
-        <input type="range" class="form-range" id="arm2" min="0" max="180" value="90">
-      </div>
-      <div class="mb-3">
-        <label for="arm3" class="form-label">关节3：<span id="a3-val" class="fw-bold slider-value">90</span></label>
-        <input type="range" class="form-range" id="arm3" min="0" max="180" value="90">
-      </div>
-      <div class="mb-4">
-        <label for="arm4" class="form-label">关节4：<span id="a4-val" class="fw-bold slider-value">90</span></label>
-        <input type="range" class="form-range" id="arm4" min="0" max="180" value="90">
-      </div>
-      <div class="text-center mb-3">
-        <button id="arm-reset" class="btn btn-secondary">Reset</button>
-      </div>
+  <!-- 机械臂控制卡片（第二个） -->
+  <div class="card">
+    <h2>机械臂控制</h2>
+    <div class="slider-group">
+      <label for="arm1">关节1</label>
+      <input id="arm1" type="range" min="0" max="180" value="90">
+      <span id="a1-val" class="slider-value">90</span>
     </div>
+    <div class="slider-group">
+      <label for="arm2">关节2</label>
+      <input id="arm2" type="range" min="0" max="180" value="90">
+      <span id="a2-val" class="slider-value">90</span>
+    </div>
+    <div class="slider-group">
+      <label for="arm3">关节3</label>
+      <input id="arm3" type="range" min="0" max="180" value="90">
+      <span id="a3-val" class="slider-value">90</span>
+    </div>
+    <div class="slider-group">
+      <label for="arm4">关节4</label>
+      <input id="arm4" type="range" min="0" max="180" value="90">
+      <span id="a4-val" class="slider-value">90</span>
+    </div>
+    <button id="arm-reset">复位到 90°</button>
   </div>
+
   <script>
-    // —— 底盘按钮 ——
-    document.querySelectorAll('.up, .down, .left, .right, .stop').forEach(btn => {
-      btn.addEventListener('click', () => {
-        // 1. 确定方向
+    // 底盘按钮逻辑
+    document.querySelectorAll('.controls button').forEach(btn => {
+      btn.onclick = () => {
         let dir = 'stop';
-        if (btn.classList.contains('up'))    dir = 'up';
-        if (btn.classList.contains('down'))  dir = 'down';
-        if (btn.classList.contains('left'))  dir = 'left';
-        if (btn.classList.contains('right')) dir = 'right';
-
-        // 2. 发请求
+        if (btn.classList.contains('up'))    dir='up';
+        if (btn.classList.contains('down'))  dir='down';
+        if (btn.classList.contains('left'))  dir='left';
+        if (btn.classList.contains('right')) dir='right';
         fetch(`/chassis?direction=${dir}`)
-          .then(res => res.text())
-          .then(txt => console.log('← 服务器应答 chassis:', txt))
-          .catch(err => console.error('× chassis 请求失败', err));
-      });
+          .then(r=>r.text()).then(t=>console.log('chassis→',t))
+          .catch(e=>console.error(e));
+      };
     });
 
-    // —— 机械臂滑块 ——
-    function sendArm() {
-      const a1 = document.getElementById('arm1').value;
-      const a2 = document.getElementById('arm2').value;
-      const a3 = document.getElementById('arm3').value;
-      const a4 = document.getElementById('arm4').value;
-
-      document.getElementById('a1-val').textContent = a1;
-      document.getElementById('a2-val').textContent = a2;
-      document.getElementById('a3-val').textContent = a3;
-      document.getElementById('a3-val').textContent = a4;
-
-      console.log('▶ 发送机械臂请求：', a1, a2, a3, a4);
+    // 机械臂滑块 & 值展示
+    function sendArm(){
+      const a1=+arm1.value, a2=+arm2.value, a3=+arm3.value, a4=+arm4.value;
+      a1_val.textContent = a1;
+      a2_val.textContent = a2;
+      a3_val.textContent = a3;
+      a4_val.textContent = a4;
       fetch(`/arm?arm1=${a1}&arm2=${a2}&arm3=${a3}&arm4=${a4}`)
-        .then(res => res.text())
-        .then(txt => console.log('← 服务器应答 arm:', txt))
-        .catch(err => console.error('× arm 请求失败', err));
+        .then(r=>r.text()).then(t=>console.log('arm→',t))
+        .catch(e=>console.error(e));
     }
+    [arm1,arm2,arm3,arm4].forEach(s=>s.oninput=sendArm);
 
-    ['arm1', 'arm2', 'arm3', 'arm4'].forEach(id => {
-      const el = document.getElementById(id);
-      el.addEventListener('input', sendArm);
-      el.addEventListener('change', sendArm);
-    });
-
-    document.getElementById('arm-reset').addEventListener('click', () => {
-      ['arm1','arm2','arm3','arm4'].forEach(id => {
-        const el = document.getElementById(id);
-        el.value = 90;
-        document.getElementById(id.replace('arm','a') + '-val').textContent = '90';
-      });
+    // 复位按钮
+    arm_reset.onclick = ()=>{
+      [arm1,arm2,arm3,arm4].forEach(s=>s.value=90);
       sendArm();
-    });
+    };
   </script>
-  </body>
+</body>
 </html>
