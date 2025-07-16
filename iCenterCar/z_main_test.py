@@ -366,7 +366,7 @@ def uart_data_handle(uart_data):
 #         time.sleep(1)
 
 ######################同学们需要在 loop_ps2()函数中增加自己的按键功能##########################
-inits = [1500] * 25
+inits = [1500] * 26
 inits[11] = 1400
 inits[12] = 1450
 inits[13] = 1500
@@ -415,6 +415,29 @@ def turn(angle, turn_time):
     current_pwms[12] = pwm2
     current_pwms[13] = pwm3
     current_pwms[14] = pwm4
+    
+def turn_to_dpwm(dpwm, turn_time): #转到与初始位置相差dpwm处
+    global current_pwms
+    rg = 180
+    pwm1 = inits[11] - dpwm
+    pwm2 = inits[12] - dpwm
+    pwm3 = inits[13] + dpwm
+    pwm4 = inits[14] + dpwm
+    send_order([[11, pwm1, turn_time],[12, pwm2, turn_time],[13, pwm3, turn_time],[14, pwm4, turn_time]])
+    current_pwms[11] = pwm1
+    current_pwms[12] = pwm2
+    current_pwms[13] = pwm3
+    current_pwms[14] = pwm4
+    
+def pick_item():
+    send_order([[25,2000,500]])
+def release_item():
+    send_order([[25,1000,500]])
+def pick_and_return():
+    pick_item()
+    send_order([[21,2000,500],[22,2000,500],[23,2000,500]])
+    release_item()
+    send_order([[21,current_pwms[21],500],[22,current_pwms[22],500],[23,current_pwms[22],500]])
 
 def parse_query(path):
     params = {}
@@ -530,11 +553,9 @@ def loop_ps2():
         if ps2.Button('L3'):
             lx_dpwm = (ps2.Analog(7) - 128) * 1000 // 255
             ly_dpwm = (ps2.Analog(8) - 128) * 1000 // 255
-            send_order( \
-                [[1, 1500-ly_dpwm, 1000], [2, 1500+ly_dpwm, 1000], \
-                 [3, 1500-ly_dpwm, 1000], [4, 1500+ly_dpwm, 1000], \
-                 [11, 1500-lx_dpwm, turn_time], [12, 1500-lx_dpwm, turn_time], \
-                 [13, 1500+lx_dpwm, turn_time], [14, 1500+lx_dpwm, turn_time]])
+            run(ly_dpwm, 100)
+            turn_to_dpwm(lx_dpwm, 100)
+            time.sleep(0.1)
         
     if not horizontal:
         if ps2.ButtonPressed('PAD_UP'):
