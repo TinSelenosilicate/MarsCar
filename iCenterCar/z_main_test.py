@@ -54,7 +54,7 @@ car_servo_br=014                #小车右后轮舵机ID
 arm_servo_1=021                 #机械臂第1个舵机ID       
 arm_servo_2=022                 #机械臂第2个舵机ID
 arm_servo_3=023                 #机械臂第3个舵机ID
-arm_servo_4=024                 #机械臂第4个舵机ID
+arm_servo_4=026                 #机械臂第4个舵机ID
 
 #2.2定义底盘转向舵机的初始位置PWM数值，并将测试得到数值对以下数值进行更新
 car_servo_fl_init=1400
@@ -65,7 +65,7 @@ car_servo_br_init=1550
 #2.3定义机械臂舵机的初始位置PWM数值，并将测试得到数值对以下数值进行更新
 arm_servo_1_init=1480
 arm_servo_2_init=1520
-arm_servo_3_init=1500
+arm_servo_3_init=1630
 arm_servo_4_init=1500
 
 #2.4定义机械臂舵机的实时PWM数值，初始数值为init,后面根据控制情况实时调整
@@ -366,14 +366,19 @@ def uart_data_handle(uart_data):
 #         time.sleep(1)
 
 ######################同学们需要在 loop_ps2()函数中增加自己的按键功能##########################
+<<<<<<< HEAD
 inits = [1500] * 26
+=======
+inits = [1500] * 30
+>>>>>>> 022337ffc92e23b4112d37f54b5e3ec538d7f2a5
 inits[11] = 1400
 inits[12] = 1450
 inits[13] = 1500
 inits[14] = 1550
 inits[21] = 1480
 inits[22] = 1520
-inits[23] = 1500
+inits[23] = 1630
+inits[26] = 1500
 
 current_pwms = inits[:]
 
@@ -388,6 +393,10 @@ def clockwise_fix(servoid, degree, ms):
     pwm = inits[servoid] - degree / rg * 1000
     send_order([[servoid, pwm, ms]])
     current_pwms[servoid] = pwm
+    
+def clockwise_fix_by_pwm(servoid, pwm, ms):
+    send_order([[servoid, pwm, ms]])
+    current_pwms[servoid] = pwm
 
 def clockwise_rotate(servoid, degree, ms):
     global current_pwms
@@ -396,6 +405,11 @@ def clockwise_rotate(servoid, degree, ms):
     else:
         rg = 180
     pwm = current_pwms[servoid] - degree / rg * 1000
+    send_order([[servoid, pwm, ms]])
+    current_pwms[servoid] = pwm
+    
+def clockwise_rotate_by_pwm(servoid, pwm, ms):
+    global current_pwms
     send_order([[servoid, pwm, ms]])
     current_pwms[servoid] = pwm
     
@@ -439,6 +453,16 @@ def pick_and_return():
     release_item()
     send_order([[21,current_pwms[21],500],[22,current_pwms[22],500],[23,current_pwms[22],500]])
 
+def set_servo_angle(servoid, angle_deg, ms):
+    if servoid >= 22:
+        rg = 135
+    else:
+        rg = 180
+    base_pwm = inits[servoid]
+    pwm = int(base_pwm - (angle_deg / rg) * 1000)
+    send_order([[servoid, pwm, ms]])
+    current_pwms[servoid] = pwm
+
 def parse_query(path):
     params = {}
     if '?' in path:
@@ -472,29 +496,33 @@ def handle_request(cl):
             elif d == 'down':
                 car_run(-car_run_speed, car_run_time)
             elif d == 'left':
-                turn(car_turn_angle, car_turn_time)
+                turn(15, 300)
             elif d == 'right':
-                turn(-car_turn_angle, car_turn_time)
+                turn(-15, 300)
             else:
                 car_stop()
             cl.send(b'HTTP/1.0 200 OK\r\n\r\nOK')
             
         elif path == '/arm':
-            a1 = int(args.get('arm1', arm_servo_1_init))
-            a2 = int(args.get('arm2', arm_servo_2_init))
-            deg1 = a1 - 90
-            deg2 = a2 - 90
-
-            print(f'Arm1 slider={a1}, rotate by {deg1}°')
-            print(f'Arm2 slider={a2}, rotate by {deg2}°')
-
-            if deg1 != 0:
-                clockwise_rotate(21, deg1, arm_move_time)
-            if deg2 != 0:
-                clockwise_rotate(22, deg2, arm_move_time)
+            JOINT2SERVO = {
+                1: 21,
+                2: 22,
+                3: 23,
+                4: 26,
+            }
+            joint = int(args.get('joint'))
+            direction = args.get('direction')
+            servoid = JOINT2SERVO.get(joint)
+            if servoid is None:
+                cl.send(b'HTTP/1.0 400 Bad Request\r\n\r\nInvalid joint')
+                return
+            delta = 15 if direction == 'right' else -15
+            
+            print(f'{servoid} is turning by {delta}')
+            clockwise_rotate(servoid, delta, 1000)
 
             cl.send(b'HTTP/1.0 200 OK\r\n\r\nOK')
-        
+ 
         else:
             cl.send(b'HTTP/1.0 404 Not Found\r\n\r\nNot Found')
     except Exception as e:
@@ -551,11 +579,58 @@ def loop_ps2():
 #                 
 #                 print(f"{label} Joystick: {value}")
         if ps2.Button('L3'):
+<<<<<<< HEAD
             lx_dpwm = (ps2.Analog(7) - 128) * 1000 // 255
             ly_dpwm = (ps2.Analog(8) - 128) * 1000 // 255
             run(ly_dpwm, 100)
             turn_to_dpwm(lx_dpwm, 100)
             time.sleep(0.1)
+=======
+             lx_dpwm = (ps2.Analog(7) - 128) * 1000 // 128
+             ly_dpwm = (ps2.Analog(8) - 128) * 1000 // 128
+             
+             clockwise_fix_by_pwm(1, 1500+ly_dpwm, 200)
+             clockwise_fix_by_pwm(2, 1500-ly_dpwm, 200)
+             clockwise_fix_by_pwm(3, 1500+ly_dpwm, 200)
+             clockwise_fix_by_pwm(4, 1500-ly_dpwm, 200)
+            
+             clockwise_fix_by_pwm(11, 1500+lx_dpwm, 200)
+             clockwise_fix_by_pwm(12, 1500-lx_dpwm, 200)
+             clockwise_fix_by_pwm(13, 1500+lx_dpwm, 200)
+             clockwise_fix_by_pwm(14, 1500-lx_dpwm, 200)
+             
+        if ps2.Button('R3'):
+            rx_dpwm = (ps2.Analog(5) - 128) * 1000 // 128
+            ry_dpwm = (ps2.Analog(6) - 128) * 1000 // 128
+            clockwise_fix_by_pwm(21, 1500-rx_dpwm, 200)
+            clockwise_fix_by_pwm(22, 1500+ry_dpwm, 200)
+            
+#         if ps2.Button('L3'):
+#             lx_dpwm = ps2.Analog(7) - 128
+#             ly_dpwm = ps2.Analog(8) - 128
+#             
+#             clockwise_fix_by_pwm(1, 1500+ly_dpwm, 200)
+#             clockwise_fix_by_pwm(2, 1500-ly_dpwm, 200)
+#             clockwise_fix_by_pwm(3, 1500+ly_dpwm, 200)
+#             clockwise_fix_by_pwm(4, 1500-ly_dpwm, 200)
+#             
+#             clockwise_fix_by_pwm(11, 1500+lx_dpwm, lx_dpwm)
+#             clockwise_fix_by_pwm(12, 1500-lx_dpwm, lx_dpwm)
+#             clockwise_fix_by_pwm(13, 1500+lx_dpwm, lx_dpwm)
+#             clockwise_fix_by_pwm(14, 1500-lx_dpwm, lx_dpwm)
+            
+        if ps2.Button('R3'):
+            rx_dpwm = (ps2.Analog(5) - 128)
+            ry_dpwm = (ps2.Analog(6) - 128)
+            if rx_dpwm > 16:
+                clockwise_rotate(21, 5, 100)
+            if rx_dpwm < -16:
+                clockwise_rotate(21, -5, 100)
+            if ry_dpwm > 16:
+                clockwise_rotate(22, -5, 100)
+            if ry_dpwm < -16:
+                clockwise_rotate(22, 5, 100)
+>>>>>>> 022337ffc92e23b4112d37f54b5e3ec538d7f2a5
         
     if not horizontal:
         if ps2.ButtonPressed('PAD_UP'):
@@ -659,5 +734,3 @@ def z_main_test():
 # 程序入口
 if __name__ == '__main__':
     z_main_test()
-
-
