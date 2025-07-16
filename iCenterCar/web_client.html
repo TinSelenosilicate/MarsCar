@@ -11,7 +11,7 @@
       font-family: sans-serif;
       background: #eef2f5;
       padding: 1rem;
-      display: block;        /* 改成 block 流，卡片自然上下排列 */
+      display: block;
     }
     .card {
       background: #fff;
@@ -20,7 +20,7 @@
       padding: 1rem;
       width: 100%;
       max-width: 360px;
-      margin: 0 auto 1rem;   /* 居中并在下方留白 */
+      margin: 0 auto 1rem;
     }
     h2 {
       font-size: 1.25rem;
@@ -29,23 +29,20 @@
       border-bottom: 2px solid #ddd;
       padding-bottom: 0.5rem;
     }
-
     /* 底盘按钮 */
     .controls {
       display: grid;
-      /* 三列三行，大小都用 1fr 平分 */
       grid-template-columns: 1fr 1fr 1fr;
       grid-template-rows:    1fr 1fr 1fr;
-      gap: 1rem;                   /* 单元格之间的统一间距 */
+      gap: 1rem;
       width: 100%;
-      max-width: 300px;            /* 或者你希望的最大宽度 */
-      margin: 0 auto 1rem;         /* 上下居中，并在底部留白 */
+      max-width: 300px;
+      margin: 0 auto 1rem;
     }
     .controls button {
-      /* 让按钮撑满单元格，并保持圆角 */
       width: 70%;
       height: 100%;
-      aspect-ratio: 1 / 1;         /* 保证始终是正方形 */
+      aspect-ratio: 1 / 1;
       font-size: 1.5rem;
       border: none;
       border-radius: 0.5rem;
@@ -53,53 +50,31 @@
       color: #fff;
       cursor: pointer;
     }
-    /* 停止按钮单独上色 */
-    .controls .stop {
-      background: #dc3545;
-    }
-
-    /* 显式定位五个按钮到网格的中央单元格和四周单元格 */
+    .controls .stop { background: #dc3545; }
     .controls .up    { grid-column: 2; grid-row: 1; }
     .controls .left  { grid-column: 1; grid-row: 2; }
     .controls .stop  { grid-column: 2; grid-row: 2; }
     .controls .right { grid-column: 3; grid-row: 2; }
     .controls .down  { grid-column: 2; grid-row: 3; }
-
-    /* 滑块 & 复位 */
-    .slider-group {
-      display: flex;
-      align-items: center;
-      margin-bottom: 0.75rem;
-    }
-    .slider-group label {
+    /* 机械臂按钮 */
+    .arm-controls { display: flex; flex-direction: column; gap: 0.75rem; }
+    .joint-control { display: flex; justify-content: space-between; }
+    .joint-control button {
       flex: 1;
-    }
-    .slider-group input[type=range] {
-      flex: 2;
-      margin-left: 0.5rem;
-    }
-    .slider-value {
-      display: inline-block;
-      width: 2rem;
-      text-align: center;
-      margin-left: 0.5rem;
-    }
-    #arm-reset {
-      display: block;
-      width: 100%;
-      padding: 0.5rem;
-      border: none;
-      background: #6c757d;
-      color: #fff;
-      border-radius: 0.5rem;
-      cursor: pointer;
+      margin: 0 0.25rem;
+      padding: 0.75rem;
       font-size: 1rem;
+      border: none;
+      border-radius: 0.5rem;
+      background: #28a745;
+      color: #fff;
+      cursor: pointer;
     }
+    .joint-control span { flex: 1; text-align: center; line-height: 2.5rem; }
   </style>
 </head>
 <body>
-
-  <!-- 底盘控制卡片（第一个） -->
+  <!-- 底盘控制 -->
   <div class="card">
     <h2>底盘控制</h2>
     <div class="controls">
@@ -111,45 +86,39 @@
     </div>
   </div>
 
-  <!-- 机械臂控制卡片（第二个） -->
+  <!-- 机械臂控制 -->
   <div class="card">
     <h2>机械臂控制</h2>
-    <div class="slider-group">
-      <label for="arm1">关节1</label>
-      <input id="arm1" type="range" min="0" max="180" value="90">
-      <span id="a1-val" class="slider-value">90</span>
+    <div class="arm-controls">
+      <!-- 关节1 -->
+      <div class="joint-control" data-joint="1">
+        <button class="left">←</button>
+        <span>关节1</span>
+        <button class="right">→</button>
+      </div>
+      <!-- 关节2 -->
+      <div class="joint-control" data-joint="2">
+        <button class="left">←</button>
+        <span>关节2</span>
+        <button class="right">→</button>
+      </div>
+      <!-- 关节3 -->
+      <div class="joint-control" data-joint="3">
+        <button class="left">←</button>
+        <span>关节3</span>
+        <button class="right">→</button>
+      </div>
+      <!-- 关节4 -->
+      <div class="joint-control" data-joint="4">
+        <button class="left">←</button>
+        <span>关节4</span>
+        <button class="right">→</button>
+      </div>
     </div>
-    <div class="slider-group">
-      <label for="arm2">关节2</label>
-      <input id="arm2" type="range" min="0" max="180" value="90">
-      <span id="a2-val" class="slider-value">90</span>
-    </div>
-    <div class="slider-group">
-      <label for="arm3">关节3</label>
-      <input id="arm3" type="range" min="0" max="180" value="90">
-      <span id="a3-val" class="slider-value">90</span>
-    </div>
-    <div class="slider-group">
-      <label for="arm4">关节4</label>
-      <input id="arm4" type="range" min="0" max="180" value="90">
-      <span id="a4-val" class="slider-value">90</span>
-    </div>
-    <button id="arm-reset">复位到 90°</button>
   </div>
 
   <script>
-
-      const arm1     = document.getElementById('arm1');
-      const arm2     = document.getElementById('arm2');
-      const arm3     = document.getElementById('arm3');
-      const arm4     = document.getElementById('arm4');
-      const a1_val   = document.getElementById('a1-val');
-      const a2_val   = document.getElementById('a2-val');
-      const a3_val   = document.getElementById('a3-val');
-      const a4_val   = document.getElementById('a4-val');
-      const resetBtn = document.getElementById('arm-reset');
-
-    // 底盘按钮逻辑
+    // 底盘控制
     document.querySelectorAll('.controls button').forEach(btn => {
       btn.onclick = () => {
         let dir = 'stop';
@@ -158,30 +127,21 @@
         if (btn.classList.contains('left'))  dir='left';
         if (btn.classList.contains('right')) dir='right';
         fetch(`/chassis?direction=${dir}`)
-          .then(r=>r.text()).then(t=>console.log('chassis→',t))
-          .catch(e=>console.error(e));
+          .then(r=>r.text()).then(t=>console.log('chassis→',t));
       };
     });
 
-    // 机械臂滑块 & 值展示
-    function sendArm(){
-      const a1=+arm1.value, a2=+arm2.value, a3=+arm3.value, a4=+arm4.value;
-      a1_val.textContent = a1;
-      a2_val.textContent = a2;
-      a3_val.textContent = a3;
-      a4_val.textContent = a4;
-      fetch(`/arm?arm1=${a1}&arm2=${a2}&arm3=${a3}&arm4=${a4}`)
-        .then(r=>r.text()).then(t=>console.log('arm→',t))
-        .catch(e=>console.error(e));
-    }
-
-    [arm1,arm2,arm3,arm4].forEach(s=>s.oninput=sendArm);
-
-    // 复位按钮
-    arm_reset.onclick = ()=>{
-      [arm1,arm2,arm3,arm4].forEach(s=>s.value=90);
-      sendArm();
-    };
+    // 机械臂控制按钮
+    document.querySelectorAll('.joint-control').forEach(div=>{
+      const joint = div.getAttribute('data-joint');
+      div.querySelectorAll('button').forEach(btn=>{
+        btn.onclick = () => {
+          const dir = btn.classList.contains('left') ? 'left' : 'right';
+          fetch(`/arm?joint=${joint}&direction=${dir}`)
+            .then(r=>r.text()).then(t=>console.log(`arm${joint}→`, t));
+        };
+      });
+    });
   </script>
 </body>
 </html>
