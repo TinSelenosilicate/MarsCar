@@ -34,13 +34,12 @@ def pre_release():
     
 def release():
     send_order([[25, 1500, 2000]])
+    
+#用于卷线的027号舵机为定时马达模式（MOD7）
+#P参数与1500的差值为转速，T参数为时间
+#警告：T的单位是秒！
 
-for i in range(5):
-    pre_hold()
-    time.sleep(2)
-    hold()
-    time.sleep(2)
-    pre_release()
-    time.sleep(3)
-    release()
-    time.sleep(2)
+def wind():
+    send_order([[27, 2000, 3]])
+def unwind():
+    send_order([[27, 1000, 3]])
