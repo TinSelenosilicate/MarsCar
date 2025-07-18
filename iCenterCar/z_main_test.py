@@ -66,7 +66,7 @@ car_servo_br_init=1550
 arm_servo_1_init=1480
 arm_servo_2_init=1500
 arm_servo_3_init=900
-arm_servo_4_init=1900
+arm_servo_4_init=1400
 
 #2.4定义机械臂舵机的实时PWM数值，初始数值为init,后面根据控制情况实时调整
 arm_servo_1_pwm=arm_servo_1_init
@@ -380,6 +380,8 @@ current_pwms = inits[:]
 
 my_run_speed = 400
 horizontal = False
+hold2 = False
+wind_status = 0
 
 def clockwise_fix(servoid, degree, ms):
     if servoid >= 22:
@@ -406,8 +408,7 @@ def clockwise_rotate(servoid, degree, ms):
     
 def pwm_to_degree(servoid):
     rg = 135 if servoid >= 22 else 180
-    delta1 = 1520 if servoid == 22 else 1630
-    delta = current_pwms[servoid] - delta1
+    delta = current_pwms[servoid] - inits[servoid]
     angle = - delta / 1000 * rg
     return angle
 
@@ -434,58 +435,33 @@ def turn(angle, turn_time):
     current_pwms[14] = pwm4
 
 def pre_hold():
-    send_order([[23, 1500, 2000], [22, 1400, 2000]])
-<<<<<<< HEAD
-    time.sleep(3)
-    send_order([[21, 1500, 3000]])
-=======
-    time.sleep(2)
-    send_order([[21, 1500, 2000]])
->>>>>>> 563f2dc8c6ede253f0735edfbaa80ad9593b120d
-    time.sleep(2)
-    send_order([[22, 950, 2000],[23, 950, 2000], [25, 1900, 2000]])
+    clockwise_fix_by_pwm(23,1300,2000)
+    clockwise_fix_by_pwm(22,1400,2000)
+    clockwise_fix_by_pwm(21,1500,3000)
+    time.sleep(1)
+    clockwise_fix_by_pwm(22,975,2000)
+    clockwise_fix_by_pwm(23,925,2000)
+    clockwise_fix_by_pwm(25,1100,2000)
 
 def hold():
-<<<<<<< HEAD
-    send_order([[25, 2400, 2000]])
-=======
-    send_order([[25, 2300, 2000]])
->>>>>>> 563f2dc8c6ede253f0735edfbaa80ad9593b120d
+    send_order([[25, 1640, 1000]])
+    
+def hold_two():
+    send_order([[25, 1400, 1000]])
     
 def pre_release():
-    send_order([[23, 1500, 2000]])
+    clockwise_fix_by_pwm(22,1500,3000)
     time.sleep(2)
-<<<<<<< HEAD
-    send_order([[21, 2400, 3000], [22, 1500, 3000], [23, 900, 3000]])
-=======
-    send_order([[21, 2500, 3000], [22, 1500, 3000], [23, 1000, 3000]])
->>>>>>> 563f2dc8c6ede253f0735edfbaa80ad9593b120d
+    clockwise_fix_by_pwm(23,1500,3000)
+    clockwise_fix_by_pwm(21,2480,2500)
+    time.sleep(2)
+    clockwise_fix_by_pwm(23,1300,1000)
     
 def release():
-    send_order([[25, 1900, 2000]])
-    
-def pick_cycle():
-    pre_hold()
-    time.sleep(2)
-    hold()
-    time.sleep(2)
-    pre_release()
-    time.sleep(3)
-    release()
-    time.sleep(2)
-    
-def wind():
-<<<<<<< HEAD
-    send_order([[27, 2500, 12]])
-    
+    send_order([[25, 1100, 2000]])
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
 def unwind():
-    send_order([[27, 500, 12]])
-=======
-    send_order([[27, 2500, 10]])
-    
-def unwind():
-    send_order([[27, 500, 10]])
->>>>>>> 563f2dc8c6ede253f0735edfbaa80ad9593b120d
+    send_order([[27, 500, 15]])
 
 def turn_to_dpwm(dpwm, turn_time): #转到与初始位置相差dpwm处
     global current_pwms
@@ -509,6 +485,18 @@ def set_servo_angle(servoid, angle_deg, ms):
     pwm = int(base_pwm - (angle_deg / rg) * 1000)
     send_order([[servoid, pwm, ms]])
     current_pwms[servoid] = pwm
+
+def start_socket_server():
+    uart.uart_send_str('0,10,10\r\n')
+    s = socket.socket()
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    s.bind(('0.0.0.0', 80))
+    s.listen(5)
+    print('Socket HTTP server running on port 80')
+    while 1:
+        cl, addr = s.accept()
+        print('Client connected from', addr)
+        handle_request(cl)
 
 def parse_query(path):
     params = {}
@@ -551,49 +539,29 @@ def handle_request(cl):
             cl.send(b'HTTP/1.0 200 OK\r\n\r\nOK')
             
         elif path == '/arm':
-            JOINT2SERVO = {
-                1: 21,
-                2: 22,
-                3: 23,
-                4: 25
+            dic = {
+                '1': 21,
+                '2': 22,
+                '3': 23,
+                '25': 25,
+                '27': 27
             }
-            joint = int(args.get('joint'))
+            servoid = dic[args.get('joint')]
             direction = args.get('direction')
-            servoid = JOINT2SERVO.get(joint)
             if servoid is None:
                 cl.send(b'HTTP/1.0 400 Bad Request\r\n\r\nInvalid joint')
                 return
-<<<<<<< HEAD
+            elif servoid != 25 and servoid != 27:    
+                delta = 15 if direction == 'right' else -15
+                print(f'{servoid} is turning by {delta}')
+                clockwise_rotate(servoid, delta, 1000)
             elif servoid == 25:
                 if direction == '1':
-                    pre_hold()
-                elif direction == '2':
-                    hold()
-                elif direction == '3':
-                    pre_release()
-                elif direction == '4':
-                    release()
-            elif servoid == 27:
-                if direction == '1':
-                    wind()
-                elif direction == '2':
-                    unwind()
-            else:
-                delta = 15 if direction == 'right' else -15
-                print(f'{servoid} is turning by {delta}')
-                clockwise_rotate(servoid, delta, 1000)
-
-=======
-            elif servoid != 25:    
-                delta = 15 if direction == 'right' else -15
-                print(f'{servoid} is turning by {delta}')
-                clockwise_rotate(servoid, delta, 1000)
-            else:
-                if direction == 'pick':
                     hold()
                 elif direction == 'release':
                     release()
->>>>>>> 563f2dc8c6ede253f0735edfbaa80ad9593b120d
+            elif servoid == 27:
+                wind()
             cl.send(b'HTTP/1.0 200 OK\r\n\r\nOK')
  
         else:
@@ -603,15 +571,19 @@ def handle_request(cl):
     finally:
         cl.close()
 
-def start_socket_server():
-    s = socket.socket()
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    s.bind(('0.0.0.0', 80))
-    s.listen(5)
-    print('Socket HTTP server running on port 80')
-    while True:
-        cl, addr = s.accept()
-        handle_request(cl)
+def connect_wifi(ssid, password):
+    sta_if = network.WLAN(network.STA_IF)
+    if not sta_if.active():
+        sta_if.active(True)
+    if not sta_if.isconnected():
+        print('Connecting to WiFi...')
+        sta_if.connect(ssid, password)
+        # 等待连接成功
+        while not sta_if.isconnected():
+            time.sleep(1)
+            print('.')
+    print('Network config:', sta_if.ifconfig())
+    return sta_if.ifconfig()[0]  # 返回IP地址
         
 def abs_cut(x, c): #将x的绝对值减小c，若x的绝对值本身就不大于c就变成0
     r = abs(x) - c
@@ -630,7 +602,7 @@ def loop_ps2():
     global current_pwms
     global my_run_speed
     global horizontal
-    
+    global wind_status,hold2
     if not ps2.read_gamepad():
         return
     
@@ -646,13 +618,17 @@ def loop_ps2():
 
     ######################请同学们自己补充各个按键功能 开始##########################
     if ps2.ButtonPressed('SQUARE'):
-        clockwise_rotate(21, -15, 1000)
+        current_degree1 = pwm_to_degree(21)
+        clockwise_fix(21, current_degree1 - 2, 500)
     if ps2.ButtonPressed('CIRCLE'):
-        clockwise_rotate(21, 15, 1000)
-#     if ps2.ButtonPressed('TRIANGLE'):
-#         clockwise_rotate(22, -15, 1000)
-#     if ps2.ButtonPressed('CROSS'):
-#         clockwise_rotate(22, 15, 1000)
+        current_degree1 = pwm_to_degree(21)
+        clockwise_fix(21, current_degree1 + 2, 500)
+    if ps2.ButtonPressed('TRIANGLE'):
+        current_degree2 = pwm_to_degree(22)
+        clockwise_fix(22, current_degree2 - 2, 500)
+    if ps2.ButtonPressed('CROSS'):
+        current_degree2 = pwm_to_degree(22)
+        clockwise_fix(22, current_degree2 + 2, 500)
         
     if ps2.en_Pressures:
 #         for button, label in zip([5, 6, 7, 8], ['Right X', 'Right Y', 'Left X', 'Left Y']):
@@ -712,15 +688,18 @@ def loop_ps2():
                 clockwise_rotate(22, -5, 3000)
             if ry_dpwm < -16:
                 clockwise_rotate(22, 5, 3000)
+                
+        if ps2.Button('R3') and ps2.Button('L3'):
+            hold2 = not hold2
+            if hold2:
+                beep.beep_on_times(4,0.1)
+            else:
+                beep.beep_on_times(1,0.1)
         
     if not horizontal:
         if ps2.ButtonPressed('PAD_UP'):
             #run(my_run_speed, 1000)
-<<<<<<< HEAD
-            run0(500, 100)
-=======
             run(500, 100)
->>>>>>> 563f2dc8c6ede253f0735edfbaa80ad9593b120d
         if ps2.ButtonPressed('PAD_DOWN'):
             run(-500, 100)
         if ps2.ButtonPressed('PAD_LEFT'):
@@ -739,30 +718,39 @@ def loop_ps2():
         if not horizontal:
             clockwise_fix(11, -130, 1000)
             clockwise_fix(12, -130, 1000)
-            clockwise_fix(13, 130, 1000)
             clockwise_fix(14, 130, 1000)
+            clockwise_fix(13, 130, 1000)
         else:
             clockwise_fix(11, 0, 1000)
             clockwise_fix(12, 0, 1000)
             clockwise_fix(13, 0, 1000)
             clockwise_fix(14, 0, 1000)
         horizontal = not horizontal
-        time.sleep(2)
+        time.sleep(1,)
         
     if ps2.ButtonPressed('L1'):
         pre_hold()
         
     if ps2.ButtonPressed('R1'):
-        hold()
-        time.sleep(2)
+        if not hold2:
+            hold()
+        else:
+            hold_two()
+        time.sleep(1.5)
         pre_release()
-        time.sleep(3)
         release()
         
     if ps2.ButtonPressed('L2'):
-        wind()
-        time.sleep(10)
-        unwind()
+        if wind_status == 0:
+            send_order([[27, 2500, 100]])
+            wind_status = 1
+        elif wind_status == 1:
+            send_order([[27, 500, 100]])
+            wind_status = 2
+        else:
+            uart.uart_send_str("#027PDST!")
+            wind_status = 0
+            
 
 modeone = 1  # 平动模式初始启用
 modetwo = 0
@@ -830,15 +818,16 @@ def MoveTest():
     #四、主函数定义
 
 def z_main_test():
-    global nled,beep,key,ps2,uart
+    global nled,beep,key,ps2,uart,wind_status
     
     nled = Mars_LED()                                    # 实例化一个led灯对象
     beep = Mars_BEEP()                                   # 实例化一个蜂鸣器对象
     key = Mars_KEY()                                     # 实例化按键对象
     uart = Mars_UART()                                   # 实例化串口对象
-    ap = network.WLAN(network.AP_IF)
-    ap.active(True)
-    ap.config(essid='Tsinghua-Danger', password='12345678')
+    try:
+        ip = connect_wifi('-Doreemioo-', '12345678')
+    except:
+        pass
 
    #################################此处是手柄实例化及初始化 开始#################################### 
     ps2 = Mars_PS2()                                     # 实例化手柄对象
@@ -858,8 +847,9 @@ def z_main_test():
         time.sleep(1)
         ps2.read_gamepad(False, 0)  # 停止震动
         
-    print('AP ifconfig:', ap.ifconfig())
+    print('AP ifconfig:', ip)
     
+    _thread.start_new_thread(start_socket_server, ())
    #################################此处是手柄实例化及初始化 结束#################################### 
     #初始化车子和机械臂
 
@@ -873,25 +863,18 @@ def z_main_test():
     beep.beep_on_times(3,0.1)                          # 启动完成
     
     print('main init ok')
-    
-    uart.uart_send_str('0,10,10\r\n')
-    
-    _thread.start_new_thread(start_socket_server, ())
+
+    wind_status = 0
     #################################此处是主程序进入无线循环#################################### 
     while 1:                                           # 无限循环
         loop_nled()
         loop_uart()
         loop_ps2()                                     # 手柄数据读写
-        MoveTest()
+#         MoveTest()
         time.sleep(0.1)
-        
         
 
 # 程序入口
 if __name__ == '__main__':
     z_main_test()
-<<<<<<< HEAD
     
-=======
-    
->>>>>>> 563f2dc8c6ede253f0735edfbaa80ad9593b120d

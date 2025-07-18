@@ -5,142 +5,262 @@
   <title>火星车控制面板</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    /* 全局 Reset & 布局 */
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: sans-serif;
-      background: #eef2f5;
-      padding: 1rem;
-      display: block;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #e3f2fd;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .card-container {
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
     }
     .card {
-      background: #fff;
-      border-radius: 0.75rem;
-      box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.1);
-      padding: 1rem;
-      width: 100%;
-      max-width: 360px;
-      margin: 0 auto 1rem;
+      border-radius: 1rem;
+      box-shadow: 0 0.5rem 1.5rem rgba(0,0,0,0.15);
+      padding: 1.5rem;
+      width: 18rem;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.3s;
     }
+    .card:hover { transform: translateY(-5px); }
     h2 {
       font-size: 1.25rem;
-      margin-bottom: 0.75rem;
+      margin-bottom: 1rem;
       text-align: center;
-      border-bottom: 2px solid #ddd;
-      padding-bottom: 0.5rem;
+      color: #333;
     }
-    /* 底盘按钮 */
+    .section-title {
+      font-size: 1rem;
+      margin: 0.75rem 0 0.5rem;
+      color: #555;
+      text-align: center;
+    }
+    .card:nth-child(1) { background: #ffffff; }
+    .card:nth-child(2) { background: #e1f5fe; }
+    .card:nth-child(3) { background: #fff8e1; }
+
     .controls {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      grid-template-rows:    1fr 1fr 1fr;
-      gap: 1rem;
-      width: 100%;
-      max-width: 300px;
-      margin: 0 auto 1rem;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 0.75rem;
+      justify-items: center;
+      margin-bottom: 1rem;
     }
     .controls button {
-      width: 70%;
-      height: 100%;
-      aspect-ratio: 1 / 1;
-      font-size: 1.5rem;
+      width: 3rem;
+      height: 3rem;
+      font-size: 1.3rem;
       border: none;
       border-radius: 0.5rem;
       background: #007bff;
       color: #fff;
       cursor: pointer;
+      transition: background 0.3s, transform 0.2s;
     }
+    .controls button:hover { background: #0056b3; transform: scale(1.05); }
     .controls .stop { background: #dc3545; }
+    .controls .stop:hover { background: #a71d2a; }
     .controls .up    { grid-column: 2; grid-row: 1; }
     .controls .left  { grid-column: 1; grid-row: 2; }
     .controls .stop  { grid-column: 2; grid-row: 2; }
     .controls .right { grid-column: 3; grid-row: 2; }
     .controls .down  { grid-column: 2; grid-row: 3; }
-    /* 机械臂按钮 */
-    .arm-controls { display: flex; flex-direction: column; gap: 0.75rem; }
-    .joint-control { display: flex; justify-content: space-between; }
+
+    .joint-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .joint-control {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .joint-control span {
+      flex: 1;
+      text-align: center;
+      color: #555;
+    }
     .joint-control button {
       flex: 1;
       margin: 0 0.25rem;
-      padding: 0.75rem;
-      font-size: 1rem;
+      padding: 0.5rem;
+      font-size: 0.9rem;
       border: none;
       border-radius: 0.5rem;
       background: #28a745;
       color: #fff;
       cursor: pointer;
+      transition: background 0.3s, transform 0.2s;
     }
-    .joint-control span { flex: 1; text-align: center; line-height: 2.5rem; }
+    .joint-control button:hover { background: #1e7e34; transform: translateY(-2px); }
+
+    .action-list {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+    .action-list button {
+      width: 80%;
+      padding: 0.6rem;
+      font-size: 0.95rem;
+      border: none;
+      border-radius: 0.5rem;
+      background: #17a2b8;
+      color: #fff;
+      cursor: pointer;
+      transition: background 0.3s, transform 0.2s;
+    }
+    .action-list button:hover { background: #117a8b; transform: translateY(-2px); }
+
+    .unload-list {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+    .unload-list button {
+      width: 80%;
+      padding: 0.6rem;
+      font-size: 0.95rem;
+      border: none;
+      border-radius: 0.5rem;
+      background: #ffc107;
+      color: #212529;
+      cursor: pointer;
+      transition: background 0.3s, transform 0.2s;
+    }
+    .unload-list button:hover { background: #d39e00; transform: translateY(-2px); }
+
+    .video-wrapper {
+      margin-top: 2rem;
+      text-align: center;
+    }
+
+    .video-wrapper h2 {
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+      color: #333;
+    }
+
+    .video-stream-large {
+      width: 640px;
+      max-width: 100%;
+      border-radius: 1rem;
+      box-shadow: 0 0 12px rgba(0,0,0,0.2);
+      border: 3px solid #90caf9;
+    }
   </style>
 </head>
 <body>
-  <!-- 底盘控制 -->
-  <div class="card">
-    <h2>底盘控制</h2>
-    <div class="controls">
-      <button class="up">↑</button>
-      <button class="down">↓</button>
-      <button class="left">←</button>
-      <button class="right">→</button>
-      <button class="stop">■</button>
+  <div class="card-container">
+    <div class="card">
+      <h2>底盘 & 关节</h2>
+      <div class="section-title">底盘控制</div>
+      <div class="controls">
+        <button class="up">↑</button>
+        <button class="down">↓</button>
+        <button class="left">←</button>
+        <button class="right">→</button>
+        <button class="stop">■</button>
+      </div>
+      <div class="section-title">关节1-3 控制</div>
+      <div class="joint-list">
+        <div class="joint-control" data-joint="1">
+          <button class="left">←</button>
+          <span>关节1</span>
+          <button class="right">→</button>
+        </div>
+        <div class="joint-control" data-joint="2">
+          <button class="left">←</button>
+          <span>关节2</span>
+          <button class="right">→</button>
+        </div>
+        <div class="joint-control" data-joint="3">
+          <button class="left">←</button>
+          <span>关节3</span>
+          <button class="right">→</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>夹取操作</h2>
+      <div class="action-list">
+        <button data-action="1">准备夹取</button>
+        <button data-action="2">夹取</button>
+        <button data-action="3">准备松开</button>
+        <button data-action="4">松开</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>卸料操作</h2>
+      <div class="unload-list">
+        <button data-unload="1"> 切换卸料状态</button>
+      </div>
     </div>
   </div>
 
-  <!-- 机械臂控制 -->
-  <div class="card">
-    <h2>机械臂控制</h2>
-    <div class="arm-controls">
-      <!-- 关节1 -->
-      <div class="joint-control" data-joint="1">
-        <button class="left">←</button>
-        <span>关节1</span>
-        <button class="right">→</button>
-      </div>
-      <!-- 关节2 -->
-      <div class="joint-control" data-joint="2">
-        <button class="left">←</button>
-        <span>关节2</span>
-        <button class="right">→</button>
-      </div>
-      <!-- 关节3 -->
-      <div class="joint-control" data-joint="3">
-        <button class="left">←</button>
-        <span>关节3</span>
-        <button class="right">→</button>
-      </div>
-      <!-- 关节4 -->
-      <div class="joint-control" data-joint="4">
-        <button class="left">←</button>
-        <span>关节4</span>
-        <button class="right">→</button>
-      </div>
-    </div>
+  <div class="video-wrapper">
+    <h2>实时视频画面</h2>
+    <img src="http://172.20.10.3:8080/stream" class="video-stream-large" alt="MaixCam 视频流">
   </div>
 
   <script>
-    // 底盘控制
     document.querySelectorAll('.controls button').forEach(btn => {
       btn.onclick = () => {
         let dir = 'stop';
-        if (btn.classList.contains('up'))    dir='up';
-        if (btn.classList.contains('down'))  dir='down';
-        if (btn.classList.contains('left'))  dir='left';
-        if (btn.classList.contains('right')) dir='right';
+        if (btn.classList.contains('up')) dir = 'up';
+        if (btn.classList.contains('down')) dir = 'down';
+        if (btn.classList.contains('left')) dir = 'left';
+        if (btn.classList.contains('right')) dir = 'right';
         fetch(`/chassis?direction=${dir}`)
-          .then(r=>r.text()).then(t=>console.log('chassis→',t));
+          .then(r => r.text())
+          .then(t => console.log('chassis→', t));
       };
     });
 
-    // 机械臂控制按钮
-    document.querySelectorAll('.joint-control').forEach(div=>{
+    document.querySelectorAll('.joint-control').forEach(div => {
       const joint = div.getAttribute('data-joint');
-      div.querySelectorAll('button').forEach(btn=>{
+      div.querySelectorAll('button').forEach(btn => {
         btn.onclick = () => {
           const dir = btn.classList.contains('left') ? 'left' : 'right';
-          fetch(`/arm?joint=${joint}&direction=${dir}`)
-            .then(r=>r.text()).then(t=>console.log(`arm${joint}→`, t));
+          fetch(`/arm?arm=${joint}&direction=${dir}`)
+            .then(r => r.text())
+            .then(t => console.log(`arm${joint}→`, t));
         };
       });
+    });
+
+    document.querySelectorAll('.action-list button').forEach(btn => {
+      btn.onclick = () => {
+        const action = btn.getAttribute('data-action');
+        fetch(`/arm?arm=25&direction=${action}`)
+          .then(r => r.text())
+          .then(t => console.log(`arm25 dir${action}→`, t));
+      };
+    });
+
+    document.querySelectorAll('.unload-list button').forEach(btn => {
+      btn.onclick = () => {
+        const load = btn.getAttribute('data-unload');
+        fetch(`/arm?arm=27&direction=${load}`)
+          .then(r => r.text())
+          .then(t => console.log(`arm27 dir${load}→`, t));
+      };
     });
   </script>
 </body>
