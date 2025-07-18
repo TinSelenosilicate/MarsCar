@@ -54,7 +54,7 @@ car_servo_br=014                #小车右后轮舵机ID
 arm_servo_1=021                 #机械臂第1个舵机ID       
 arm_servo_2=022                 #机械臂第2个舵机ID
 arm_servo_3=023                 #机械臂第3个舵机ID
-arm_servo_4=026                 #机械臂第4个舵机ID
+arm_servo_4=025                 #机械臂第4个舵机ID
 
 #2.2定义底盘转向舵机的初始位置PWM数值，并将测试得到数值对以下数值进行更新
 car_servo_fl_init=1400
@@ -64,9 +64,9 @@ car_servo_br_init=1550
 
 #2.3定义机械臂舵机的初始位置PWM数值，并将测试得到数值对以下数值进行更新
 arm_servo_1_init=1480
-arm_servo_2_init=1520
-arm_servo_3_init=1630
-arm_servo_4_init=1500
+arm_servo_2_init=1500
+arm_servo_3_init=900
+arm_servo_4_init=1900
 
 #2.4定义机械臂舵机的实时PWM数值，初始数值为init,后面根据控制情况实时调整
 arm_servo_1_pwm=arm_servo_1_init
@@ -162,7 +162,7 @@ def car_stop():
 #3.5 定义机械臂运动函数
 #3.5.1 定义机械臂舵机初始化函数，即再一次对中
 def arm_servos_init():
-    send_order([[21, arm_servo_1_init, 1000], [22, arm_servo_2_init, 1000], [23, arm_servo_3_init, 1000]])
+    send_order([[21, arm_servo_1_init, 3000], [22, arm_servo_2_init, 3000], [23, arm_servo_3_init, 3000], [25, arm_servo_4_init, 3000]])
     print("Arm servos are tunning")
 #2. 定义机械臂运动——任何1个关节运动，需要传递arm_id,arm_ang,move_time
 def arm_move_1(arm_id,arm_ang,move_time):
@@ -366,19 +366,15 @@ def uart_data_handle(uart_data):
 #         time.sleep(1)
 
 ######################同学们需要在 loop_ps2()函数中增加自己的按键功能##########################
-<<<<<<< HEAD
-inits = [1500] * 26
-=======
 inits = [1500] * 30
->>>>>>> 022337ffc92e23b4112d37f54b5e3ec538d7f2a5
 inits[11] = 1400
 inits[12] = 1450
 inits[13] = 1500
 inits[14] = 1550
 inits[21] = 1480
-inits[22] = 1520
-inits[23] = 1630
-inits[26] = 1500
+inits[22] = 1300
+inits[23] = 1000
+inits[25] = 1300
 
 current_pwms = inits[:]
 
@@ -408,6 +404,13 @@ def clockwise_rotate(servoid, degree, ms):
     send_order([[servoid, pwm, ms]])
     current_pwms[servoid] = pwm
     
+def pwm_to_degree(servoid):
+    rg = 135 if servoid >= 22 else 180
+    delta1 = 1520 if servoid == 22 else 1630
+    delta = current_pwms[servoid] - delta1
+    angle = - delta / 1000 * rg
+    return angle
+
 def clockwise_rotate_by_pwm(servoid, pwm, ms):
     global current_pwms
     send_order([[servoid, pwm, ms]])
@@ -429,7 +432,41 @@ def turn(angle, turn_time):
     current_pwms[12] = pwm2
     current_pwms[13] = pwm3
     current_pwms[14] = pwm4
+
+def pre_hold():
+    send_order([[23, 1500, 2000], [22, 1400, 2000]])
+    time.sleep(3)
+    send_order([[21, 1500, 3000]])
+    time.sleep(2)
+    send_order([[22, 950, 2000],[23, 950, 2000], [25, 1900, 2000]])
+
+def hold():
+    send_order([[25, 2400, 2000]])
     
+def pre_release():
+    send_order([[23, 1500, 2000]])
+    time.sleep(2)
+    send_order([[21, 2400, 3000], [22, 1500, 3000], [23, 900, 3000]])
+    
+def release():
+    send_order([[25, 1900, 2000]])
+    
+def pick_cycle():
+    pre_hold()
+    time.sleep(2)
+    hold()
+    time.sleep(2)
+    pre_release()
+    time.sleep(3)
+    release()
+    time.sleep(2)
+    
+def wind():
+    send_order([[27, 2500, 12]])
+    
+def unwind():
+    send_order([[27, 500, 12]])
+
 def turn_to_dpwm(dpwm, turn_time): #转到与初始位置相差dpwm处
     global current_pwms
     rg = 180
@@ -442,16 +479,6 @@ def turn_to_dpwm(dpwm, turn_time): #转到与初始位置相差dpwm处
     current_pwms[12] = pwm2
     current_pwms[13] = pwm3
     current_pwms[14] = pwm4
-    
-def pick_item():
-    send_order([[25,2000,500]])
-def release_item():
-    send_order([[25,1000,500]])
-def pick_and_return():
-    pick_item()
-    send_order([[21,2000,500],[22,2000,500],[23,2000,500]])
-    release_item()
-    send_order([[21,current_pwms[21],500],[22,current_pwms[22],500],[23,current_pwms[22],500]])
 
 def set_servo_angle(servoid, angle_deg, ms):
     if servoid >= 22:
@@ -508,7 +535,7 @@ def handle_request(cl):
                 1: 21,
                 2: 22,
                 3: 23,
-                4: 26,
+                4: 25
             }
             joint = int(args.get('joint'))
             direction = args.get('direction')
@@ -516,10 +543,24 @@ def handle_request(cl):
             if servoid is None:
                 cl.send(b'HTTP/1.0 400 Bad Request\r\n\r\nInvalid joint')
                 return
-            delta = 15 if direction == 'right' else -15
-            
-            print(f'{servoid} is turning by {delta}')
-            clockwise_rotate(servoid, delta, 1000)
+            elif servoid == 25:
+                if direction == '1':
+                    pre_hold()
+                elif direction == '2':
+                    hold()
+                elif direction == '3':
+                    pre_release()
+                elif direction == '4':
+                    release()
+            elif servoid == 27:
+                if direction == '1':
+                    wind()
+                elif direction == '2':
+                    unwind()
+            else:
+                delta = 15 if direction == 'right' else -15
+                print(f'{servoid} is turning by {delta}')
+                clockwise_rotate(servoid, delta, 1000)
 
             cl.send(b'HTTP/1.0 200 OK\r\n\r\nOK')
  
@@ -539,6 +580,15 @@ def start_socket_server():
     while True:
         cl, addr = s.accept()
         handle_request(cl)
+        
+def abs_cut(x, c): #将x的绝对值减小c，若x的绝对值本身就不大于c就变成0
+    r = abs(x) - c
+    if r <= 0:
+        return 0
+    if x < 0:
+        r *= -1
+    return r
+    
         
 #3.4 处理PS2手柄输入
 def loop_ps2(): 
@@ -567,10 +617,10 @@ def loop_ps2():
         clockwise_rotate(21, -15, 1000)
     if ps2.ButtonPressed('CIRCLE'):
         clockwise_rotate(21, 15, 1000)
-    if ps2.ButtonPressed('TRIANGLE'):
-        clockwise_rotate(22, -15, 1000)
-    if ps2.ButtonPressed('CROSS'):
-        clockwise_rotate(22, 15, 1000)
+#     if ps2.ButtonPressed('TRIANGLE'):
+#         clockwise_rotate(22, -15, 1000)
+#     if ps2.ButtonPressed('CROSS'):
+#         clockwise_rotate(22, 15, 1000)
         
     if ps2.en_Pressures:
 #         for button, label in zip([5, 6, 7, 8], ['Right X', 'Right Y', 'Left X', 'Left Y']):
@@ -578,32 +628,32 @@ def loop_ps2():
 #                 value = ps2.Analog(button)
 #                 
 #                 print(f"{label} Joystick: {value}")
+#         if ps2.Button('L3'):
+#              lx_dpwm = (ps2.Analog(7) - 128) * 1000 // 128
+#              ly_dpwm = (ps2.Analog(8) - 128) * 1000 // 128
+#              
+#              clockwise_fix_by_pwm(1, 1500+ly_dpwm, 200)
+#              clockwise_fix_by_pwm(2, 1500-ly_dpwm, 200)
+#              clockwise_fix_by_pwm(3, 1500+ly_dpwm, 200)
+#              clockwise_fix_by_pwm(4, 1500-ly_dpwm, 200)
+#             
+#              clockwise_fix_by_pwm(11, 1500+lx_dpwm, 200)
+#              clockwise_fix_by_pwm(12, 1500-lx_dpwm, 200)
+#              clockwise_fix_by_pwm(13, 1500+lx_dpwm, 200)
+#              clockwise_fix_by_pwm(14, 1500-lx_dpwm, 200)
         if ps2.Button('L3'):
-<<<<<<< HEAD
-            lx_dpwm = (ps2.Analog(7) - 128) * 1000 // 255
-            ly_dpwm = (ps2.Analog(8) - 128) * 1000 // 255
-            run(ly_dpwm, 100)
-            turn_to_dpwm(lx_dpwm, 100)
-            time.sleep(0.1)
-=======
-             lx_dpwm = (ps2.Analog(7) - 128) * 1000 // 128
-             ly_dpwm = (ps2.Analog(8) - 128) * 1000 // 128
-             
-             clockwise_fix_by_pwm(1, 1500+ly_dpwm, 200)
-             clockwise_fix_by_pwm(2, 1500-ly_dpwm, 200)
-             clockwise_fix_by_pwm(3, 1500+ly_dpwm, 200)
-             clockwise_fix_by_pwm(4, 1500-ly_dpwm, 200)
             
-             clockwise_fix_by_pwm(11, 1500+lx_dpwm, 200)
-             clockwise_fix_by_pwm(12, 1500-lx_dpwm, 200)
-             clockwise_fix_by_pwm(13, 1500+lx_dpwm, 200)
-             clockwise_fix_by_pwm(14, 1500-lx_dpwm, 200)
+            lx_dpwm = (ps2.Analog(7) - 128) * 400 // 128
+            ly_dpwm = (ps2.Analog(8) - 128) * 1000 // 128
+            run(-ly_dpwm, 500)
+            turn_to_dpwm(abs_cut(-lx_dpwm, 200), 500)
+            time.sleep(0.1) 
              
-        if ps2.Button('R3'):
-            rx_dpwm = (ps2.Analog(5) - 128) * 1000 // 128
-            ry_dpwm = (ps2.Analog(6) - 128) * 1000 // 128
-            clockwise_fix_by_pwm(21, 1500-rx_dpwm, 200)
-            clockwise_fix_by_pwm(22, 1500+ry_dpwm, 200)
+#         if ps2.Button('R3'):
+#             rx_dpwm = (ps2.Analog(5) - 128) * 1000 // 128
+#             ry_dpwm = (ps2.Analog(6) - 128) * 1000 // 128
+#             clockwise_fix_by_pwm(21, 1500-rx_dpwm, 2000)
+#             clockwise_fix_by_pwm(22, 1500+ry_dpwm, 2000)
             
 #         if ps2.Button('L3'):
 #             lx_dpwm = ps2.Analog(7) - 128
@@ -623,38 +673,38 @@ def loop_ps2():
             rx_dpwm = (ps2.Analog(5) - 128)
             ry_dpwm = (ps2.Analog(6) - 128)
             if rx_dpwm > 16:
-                clockwise_rotate(21, 5, 100)
+                clockwise_rotate(21, 5, 3000)
             if rx_dpwm < -16:
-                clockwise_rotate(21, -5, 100)
+                clockwise_rotate(21, -5, 3000)
             if ry_dpwm > 16:
-                clockwise_rotate(22, -5, 100)
+                clockwise_rotate(22, -5, 3000)
             if ry_dpwm < -16:
-                clockwise_rotate(22, 5, 100)
->>>>>>> 022337ffc92e23b4112d37f54b5e3ec538d7f2a5
+                clockwise_rotate(22, 5, 3000)
         
     if not horizontal:
         if ps2.ButtonPressed('PAD_UP'):
-            run(my_run_speed, 1000)
+            #run(my_run_speed, 1000)
+            run0(500, 100)
         if ps2.ButtonPressed('PAD_DOWN'):
-            run(-my_run_speed, 1000)
+            run(-500, 100)
         if ps2.ButtonPressed('PAD_LEFT'):
-            turn(15, 300)
+            turn(5, 100)
         if ps2.ButtonPressed('PAD_RIGHT'):
-            turn(-15, 300)
+            turn(-5, 100)
     else:
         if ps2.ButtonPressed('PAD_LEFT'):
-            send_order([[1, 1500+my_run_speed, 1000], [2, 1500-my_run_speed, 1000], \
-                        [3, 1500-my_run_speed, 1000], [4, 1500+my_run_speed, 1000]])
+            send_order([[1, 2000, 100], [2, 1000, 100], \
+                        [3, 1000, 100], [4, 2000, 100]])
         if ps2.ButtonPressed('PAD_RIGHT'):
-            send_order([[1, 1500-my_run_speed, 1000], [2, 1500+my_run_speed, 1000], \
-                        [3, 1500+my_run_speed, 1000], [4, 1500-my_run_speed, 1000]])
+            send_order([[1, 1000, 100], [2, 2000, 100], \
+                        [3, 2000, 100], [4, 1000, 100]])
         
     if ps2.ButtonPressed('SELECT'):
         if not horizontal:
-            clockwise_fix(11, -95, 1000)
-            clockwise_fix(12, -95, 1000)
-            clockwise_fix(13, 95, 1000)
-            clockwise_fix(14, 95, 1000)
+            clockwise_fix(11, -130, 1000)
+            clockwise_fix(12, -130, 1000)
+            clockwise_fix(13, 130, 1000)
+            clockwise_fix(14, 130, 1000)
         else:
             clockwise_fix(11, 0, 1000)
             clockwise_fix(12, 0, 1000)
@@ -663,13 +713,80 @@ def loop_ps2():
         horizontal = not horizontal
         time.sleep(2)
         
+    if ps2.ButtonPressed('L1'):
+        pre_hold()
+        
+    if ps2.ButtonPressed('R1'):
+        hold()
+        time.sleep(2)
+        pre_release()
+        time.sleep(3)
+        release()
         
     if ps2.ButtonPressed('L2'):
-        my_run_speed += 100
-    if ps2.ButtonPressed('L1'):
-        my_run_speed -= 100
+        wind()
+        time.sleep(10)
+        unwind()
 
+modeone = 1  # 平动模式初始启用
+modetwo = 0
 
+def MoveTest():
+    global modeone, modetwo  # 声明使用全局变量
+    
+    # 模式切换逻辑
+    if ps2.ButtonPressed('R2'):
+        # 使用互斥切换
+        modeone = not modeone
+        modetwo = not modetwo
+        print(f'模式切换: 平动模式={modeone}, 竖直模式={modetwo}')
+    
+    
+    # 公共按钮（不受模式影响）
+#     if ps2.ButtonPressed('SQUARE'):
+#         clockwise_rotate(21, -detaC, 1000)
+#         print('SQUARE') 
+#         
+#     if ps2.ButtonPressed('CIRCLE'):
+#         clockwise_rotate(21, detaC, 1000)
+#         print('CIRCLE')
+    #pingdong
+    a1 = pwm_to_degree(22)
+    a2 = pwm_to_degree(23)
+    k = 1.35/2.6
+    deta1 = (k*math.sin(math.radians(a1))/math.sin(math.radians(a1+a2))-1)
+    deta2 = -(1 + k * math.cos(math.radians(a1)) / math.cos(math.radians(a1+a2)))
+    deta22_1 = 15
+    deta23_1 = deta22_1 * deta1
+    deta22_2 = 15
+    deta23_2 = deta22_2 * deta2
+    #模式专属按钮
+    if modeone:  # 平动模式
+        if ps2.ButtonPressed('TRIANGLE'):
+            print(f"Moving servos: 22={deta22_1}, 23={deta23_1}")
+            clockwise_rotate(22, deta22_1,1000)
+            print("Servo 22 command sent")
+            clockwise_rotate(23, deta23_1, 1000)
+            print("Servo 23 command sent")
+            
+        elif ps2.ButtonPressed('CROSS'):  # 使用elif避免同时触发
+            clockwise_rotate(22, -deta22_1, 1000)
+            clockwise_rotate(23, -deta23_1, 1000)
+            print('平动-CROSS')
+            time.sleep(0.1)
+    
+    elif modetwo:  # 竖直移动模式
+        if ps2.ButtonPressed('TRIANGLE'):
+            clockwise_rotate(22, deta22_2, 1000)
+            clockwise_rotate(23, deta23_2, 1000)
+            print('竖直-TRIANGLE')
+            time.sleep(0.1)
+            
+        elif ps2.ButtonPressed('CROSS'):
+            clockwise_rotate(22, -deta22_2, 1000)
+            clockwise_rotate(23, -deta23_2, 1000)
+            print('竖直-CROSS')
+            time.sleep(0.1)
 
 
     ######################请同学们自己补充各个按键功能 结束##########################
@@ -706,6 +823,7 @@ def z_main_test():
         ps2.read_gamepad(False, 0)  # 停止震动
         
     print('AP ifconfig:', ap.ifconfig())
+    
    #################################此处是手柄实例化及初始化 结束#################################### 
     #初始化车子和机械臂
 
@@ -728,9 +846,12 @@ def z_main_test():
         loop_nled()
         loop_uart()
         loop_ps2()                                     # 手柄数据读写
-        
+        MoveTest()
         time.sleep(0.1)
+        
+        
 
 # 程序入口
 if __name__ == '__main__':
     z_main_test()
+    
